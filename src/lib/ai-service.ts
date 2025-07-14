@@ -14,7 +14,7 @@ export interface Saint {
 
 export async function generateHomily(gospel: ReadingSection): Promise<string> {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
     const prompt = `
     As a Catholic priest, write a short, inspiring homily (200-300 words) based on today's Gospel reading:
@@ -43,7 +43,7 @@ export async function generateHomily(gospel: ReadingSection): Promise<string> {
 
 export async function generateSaintOfTheDay(): Promise<Saint> {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
     const today = new Date();
     const dateString = today.toLocaleDateString('en-US', { 
