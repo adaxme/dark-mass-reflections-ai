@@ -1,3 +1,4 @@
+// Interfaces for structured data
 interface ReadingSection {
   title: string;
   source: string;
@@ -6,7 +7,8 @@ interface ReadingSection {
 
 interface CleanReadingData {
   date: string;
-  day: string;
+  liturgicalDay: string;
+  optionalSaint?: string;
   Mass_R1: ReadingSection;
   Mass_Ps: ReadingSection;
   Mass_R2?: ReadingSection;
@@ -15,12 +17,14 @@ interface CleanReadingData {
   copyright: string;
 }
 
+// Utility to strip HTML tags
 function stripHtml(html: string): string {
   const temp = document.createElement("div");
   temp.innerHTML = html;
   return temp.textContent || temp.innerText || "";
 }
 
+// Helper to extract and label reading sections
 function extractSection(data: any, key: string, title: string): ReadingSection {
   return {
     title,
@@ -29,6 +33,7 @@ function extractSection(data: any, key: string, title: string): ReadingSection {
   };
 }
 
+// Main function to fetch and clean Universalis Mass readings
 export async function fetchReadings(): Promise<CleanReadingData> {
   return new Promise<CleanReadingData>((resolve, reject) => {
     const script = document.createElement('script');
@@ -41,10 +46,15 @@ export async function fetchReadings(): Promise<CleanReadingData> {
     const formattedDate = `${year}${month}${day}`;
     const url = `https://universalis.com/United.States/${formattedDate}/jsonpmass.js`;
 
+    // JSONP callback
     (window as any)[uniqueCallbackName] = (data: any) => {
+      const fullDayText = stripHtml(data.day || "");
+      const [liturgicalDay, optionalSaintPart] = fullDayText.split("or").map(part => part.trim());
+
       const cleanData: CleanReadingData = {
         date: data.date,
-        day: data.day,
+        liturgicalDay,
+        optionalSaint: optionalSaintPart || undefined,
         Mass_R1: extractSection(data, 'Mass_R1', 'First Reading'),
         Mass_Ps: extractSection(data, 'Mass_Ps', 'Responsorial Psalm'),
         Mass_R2: data.Mass_R2 ? extractSection(data, 'Mass_R2', 'Second Reading') : undefined,
@@ -58,13 +68,14 @@ export async function fetchReadings(): Promise<CleanReadingData> {
       document.body.removeChild(script);
     };
 
-    script.src = `${url}?callback=${uniqueCallbackName}`;
+    // Error handler
     script.onerror = () => {
       reject(new Error(`JSONP request to ${url} failed`));
       delete (window as any)[uniqueCallbackName];
       document.body.removeChild(script);
     };
 
+    script.src = `${url}?callback=${uniqueCallbackName}`;
     document.body.appendChild(script);
   });
 }

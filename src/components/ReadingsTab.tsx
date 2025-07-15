@@ -49,8 +49,11 @@ const ReadingsTab: React.FC<ReadingsTabProps> = ({ readings, loading, error }) =
       {/* Date Header */}
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold text-primary mb-2">
-          {readings.day}
+          {readings.liturgicalDay}
         </h2>
+        {readings.optionalSaint && (
+          <p className="text-lg text-accent font-medium mb-2">{readings.optionalSaint}</p>
+        )}
         <p className="text-muted-foreground">{readings.date}</p>
       </div>
 
