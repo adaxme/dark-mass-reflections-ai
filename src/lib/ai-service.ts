@@ -41,6 +41,12 @@ export async function generateHomily(gospel: ReadingSection): Promise<string> {
   }
 }
 
+function stripHtmlTags(html: string): string {
+  const temp = document.createElement("div");
+  temp.innerHTML = html;
+  return temp.textContent || temp.innerText || "";
+}
+
 export async function generateSaintOfTheDay(): Promise<Saint> {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -54,7 +60,7 @@ export async function generateSaintOfTheDay(): Promise<Saint> {
     const prompt = `
     Provide information about a Catholic saint for today, ${dateString}. If there's no specific saint for today, choose a well-known Catholic saint. 
 
-    Please provide the response in this exact JSON format:
+    Please provide the response in this exact JSON format with PLAIN TEXT only (no HTML tags):
     {
       "name": "Saint's full name",
       "feastDay": "Month Day (or feast day)",
@@ -64,6 +70,7 @@ export async function generateSaintOfTheDay(): Promise<Saint> {
     }
 
     Focus on saints recognized by the Catholic Church. Keep the biography inspiring and accessible.
+    Return only plain text in JSON format, no HTML tags or formatting.
     `;
 
     const result = await model.generateContent(prompt);
@@ -74,7 +81,16 @@ export async function generateSaintOfTheDay(): Promise<Saint> {
     try {
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+        const saintData = JSON.parse(jsonMatch[0]);
+        
+        // Strip HTML tags from all fields
+        return {
+          name: stripHtmlTags(saintData.name || ""),
+          feastDay: stripHtmlTags(saintData.feastDay || ""),
+          biography: stripHtmlTags(saintData.biography || ""),
+          patron: stripHtmlTags(saintData.patron || ""),
+          prayerOrQuote: stripHtmlTags(saintData.prayerOrQuote || "")
+        };
       }
     } catch (parseError) {
       console.error('Error parsing saint JSON:', parseError);
