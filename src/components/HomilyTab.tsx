@@ -14,7 +14,7 @@ const HomilyTab: React.FC<HomilyTabProps> = ({ readings }) => {
   const [homily, setHomily] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const loadHomily = async () => {
     if (!readings?.Mass_G) return;
@@ -22,7 +22,7 @@ const HomilyTab: React.FC<HomilyTabProps> = ({ readings }) => {
     try {
       setLoading(true);
       setError(null);
-      const homilyText = await generateHomily(readings.Mass_G);
+      const homilyText = await generateHomily(readings.Mass_G, language);
       setHomily(homilyText);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -32,10 +32,11 @@ const HomilyTab: React.FC<HomilyTabProps> = ({ readings }) => {
   };
 
   useEffect(() => {
-    if (readings?.Mass_G && !homily) {
+    if (readings?.Mass_G) {
+      setHomily(null); // Reset homily when language changes
       loadHomily();
     }
-  }, [readings]);
+  }, [readings, language]);
 
   if (!readings?.Mass_G) {
     return (

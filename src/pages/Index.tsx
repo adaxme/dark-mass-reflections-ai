@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { fetchReadings, CleanReadingData } from '@/lib/readings-api';
+import { translateReadings } from '@/lib/ai-service';
 import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
 import ReadingsTab from '@/components/ReadingsTab';
 import SaintTab from '@/components/SaintTab';
@@ -12,7 +13,7 @@ const AppContent = () => {
   const [readings, setReadings] = useState<CleanReadingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   useEffect(() => {
     const loadReadings = async () => {
@@ -20,7 +21,8 @@ const AppContent = () => {
         setLoading(true);
         setError(null);
         const readingsData = await fetchReadings();
-        setReadings(readingsData);
+        const translatedReadings = await translateReadings(readingsData, language);
+        setReadings(translatedReadings);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
@@ -29,7 +31,7 @@ const AppContent = () => {
     };
 
     loadReadings();
-  }, []);
+  }, [language]);
 
   return (
     <div className="min-h-screen bg-background">

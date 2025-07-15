@@ -9,14 +9,14 @@ const SaintTab: React.FC = () => {
   const [saint, setSaint] = useState<Saint | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   useEffect(() => {
     const loadSaint = async () => {
       try {
         setLoading(true);
         setError(null);
-        const saintData = await generateSaintOfTheDay();
+        const saintData = await generateSaintOfTheDay(language);
         setSaint(saintData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -26,7 +26,7 @@ const SaintTab: React.FC = () => {
     };
 
     loadSaint();
-  }, []);
+  }, [language]);
 
   if (loading) {
     return (
