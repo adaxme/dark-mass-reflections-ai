@@ -1,73 +1,90 @@
-# Welcome to your Lovable project
+# Catholic Mass Readings - React Native App
 
-## Project info
+A React Native application that provides daily Catholic Mass readings, saint information, and spiritual reflections.
 
-**URL**: https://lovable.dev/projects/07f3fc89-7a19-4f55-b308-b5adb9c334a9
+## Features
 
-## How can I edit this code?
+- **Daily Mass Readings**: First reading, psalm, second reading (when applicable), gospel acclamation, and gospel
+- **Saint of the Day**: Information about Catholic saints with biographies, feast days, and prayers
+- **Spiritual Reflections**: AI-generated homilies based on the daily gospel reading
+- **Multi-language Support**: Available in English, Spanish, and French
+- **Offline Storage**: Language preferences are saved locally
 
-There are several ways of editing your application.
+## Prerequisites
 
-**Use Lovable**
+- Node.js (>= 18)
+- React Native development environment
+- Android Studio (for Android development)
+- Xcode (for iOS development, macOS only)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/07f3fc89-7a19-4f55-b308-b5adb9c334a9) and start prompting.
+## Installation
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd catholic-mass-readings-app
 ```
 
-**Edit a file directly in GitHub**
+2. Install dependencies:
+```bash
+npm install
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+3. For iOS, install CocoaPods dependencies:
+```bash
+cd ios && pod install && cd ..
+```
 
-**Use GitHub Codespaces**
+## Running the App
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Android
+```bash
+npm run android
+```
 
-## What technologies are used for this project?
+### iOS
+```bash
+npm run ios
+```
 
-This project is built with:
+### Development Server
+```bash
+npm start
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Building APK
 
-## How can I deploy this project?
+To build a release APK for Android:
 
-Simply open [Lovable](https://lovable.dev/projects/07f3fc89-7a19-4f55-b308-b5adb9c334a9) and click on Share -> Publish.
+```bash
+npm run build
+```
 
-## Can I connect a custom domain to my Lovable project?
+The APK will be generated in `android/app/build/outputs/apk/release/`
 
-Yes, you can!
+## Project Structure
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```
+src/
+├── contexts/          # React contexts (Language)
+├── lib/              # Utility libraries (AI service, readings API)
+├── screens/          # Main app screens
+└── App.tsx           # Main app component
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## API Services
+
+- **Universalis API**: Provides daily Catholic Mass readings
+- **Google Gemini AI**: Generates spiritual reflections and saint information
+
+## Technologies Used
+
+- React Native 0.73
+- React Navigation 6
+- AsyncStorage for local data persistence
+- Vector Icons for UI elements
+- Google Generative AI for content generation
+
+## License
+
+This project is licensed under the MIT License.
