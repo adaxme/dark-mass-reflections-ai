@@ -156,80 +156,91 @@ export async function translateReadings(readings: any, language: string = 'en'):
       return readings;
     }
 
-    const prompt = `
-    Translate the following Catholic Mass readings to ${targetLanguage}. Keep the structure exactly the same and maintain the spiritual and liturgical tone:
+    // Create separate translation requests for better reliability
+    const translateText = async (text: string, context: string = ''): Promise<string> => {
+      const prompt = `Translate the following Catholic liturgical text to ${targetLanguage}. Maintain the spiritual and liturgical tone. ${context}
 
-    Liturgical Day: ${readings.liturgicalDay}
-    Optional Saint: ${readings.optionalSaint || 'None'}
-    
-    First Reading Title: ${readings.Mass_R1.title}
-    First Reading Source: ${readings.Mass_R1.source}
-    First Reading Text: ${readings.Mass_R1.text}
-    
-    Psalm Title: ${readings.Mass_Ps.title}
-    Psalm Source: ${readings.Mass_Ps.source}
-    Psalm Text: ${readings.Mass_Ps.text}
-    
-    ${readings.Mass_R2 ? `Second Reading Title: ${readings.Mass_R2.title}
-    Second Reading Source: ${readings.Mass_R2.source}
-    Second Reading Text: ${readings.Mass_R2.text}` : ''}
-    
-    Gospel Acclamation Title: ${readings.Mass_GA.title}
-    Gospel Acclamation Source: ${readings.Mass_GA.source}
-    Gospel Acclamation Text: ${readings.Mass_GA.text}
-    
-    Gospel Title: ${readings.Mass_G.title}
-    Gospel Source: ${readings.Mass_G.source}
-    Gospel Text: ${readings.Mass_G.text}
+Text to translate: "${text}"
 
-    Please provide the translation in the same JSON structure format with all fields translated to ${targetLanguage}.
-    `;
+Respond with ONLY the translated text, no additional formatting or explanation.`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.text().trim();
+    };
 
-    // Try to parse the translated structure
-    try {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const translatedData = JSON.parse(jsonMatch[0]);
-        return {
-          ...readings,
-          liturgicalDay: translatedData.liturgicalDay || readings.liturgicalDay,
-          optionalSaint: translatedData.optionalSaint || readings.optionalSaint,
-          Mass_R1: {
-            title: translatedData.Mass_R1?.title || readings.Mass_R1.title,
-            source: translatedData.Mass_R1?.source || readings.Mass_R1.source,
-            text: translatedData.Mass_R1?.text || readings.Mass_R1.text
-          },
-          Mass_Ps: {
-            title: translatedData.Mass_Ps?.title || readings.Mass_Ps.title,
-            source: translatedData.Mass_Ps?.source || readings.Mass_Ps.source,
-            text: translatedData.Mass_Ps?.text || readings.Mass_Ps.text
-          },
-          Mass_R2: readings.Mass_R2 ? {
-            title: translatedData.Mass_R2?.title || readings.Mass_R2.title,
-            source: translatedData.Mass_R2?.source || readings.Mass_R2.source,
-            text: translatedData.Mass_R2?.text || readings.Mass_R2.text
-          } : undefined,
-          Mass_GA: {
-            title: translatedData.Mass_GA?.title || readings.Mass_GA.title,
-            source: translatedData.Mass_GA?.source || readings.Mass_GA.source,
-            text: translatedData.Mass_GA?.text || readings.Mass_GA.text
-          },
-          Mass_G: {
-            title: translatedData.Mass_G?.title || readings.Mass_G.title,
-            source: translatedData.Mass_G?.source || readings.Mass_G.source,
-            text: translatedData.Mass_G?.text || readings.Mass_G.text
-          }
-        };
-      }
-    } catch (parseError) {
-      console.error('Error parsing translated readings:', parseError);
-    }
+    // Translate each field individually for better accuracy
+    const [
+      translatedLiturgicalDay,
+      translatedOptionalSaint,
+      translatedR1Title,
+      translatedR1Source,
+      translatedR1Text,
+      translatedPsTitle,
+      translatedPsSource,
+      translatedPsText,
+      translatedGATitle,
+      translatedGASource,
+      translatedGAText,
+      translatedGTitle,
+      translatedGSource,
+      translatedGText,
+      translatedR2Title,
+      translatedR2Source,
+      translatedR2Text,
+      translatedCopyright
+    ] = await Promise.all([
+      translateText(readings.liturgicalDay, 'This is a liturgical day name.'),
+      readings.optionalSaint ? translateText(readings.optionalSaint, 'This is a saint name.') : null,
+      translateText(readings.Mass_R1.title, 'This is a reading title.'),
+      translateText(readings.Mass_R1.source, 'This is a biblical source reference.'),
+      translateText(readings.Mass_R1.text, 'This is a biblical reading text.'),
+      translateText(readings.Mass_Ps.title, 'This is a psalm title.'),
+      translateText(readings.Mass_Ps.source, 'This is a psalm source reference.'),
+      translateText(readings.Mass_Ps.text, 'This is a psalm text.'),
+      translateText(readings.Mass_GA.title, 'This is a gospel acclamation title.'),
+      translateText(readings.Mass_GA.source, 'This is a gospel acclamation source.'),
+      translateText(readings.Mass_GA.text, 'This is a gospel acclamation text.'),
+      translateText(readings.Mass_G.title, 'This is a gospel title.'),
+      translateText(readings.Mass_G.source, 'This is a gospel source reference.'),
+      translateText(readings.Mass_G.text, 'This is a gospel reading text.'),
+      readings.Mass_R2 ? translateText(readings.Mass_R2.title, 'This is a second reading title.') : null,
+      readings.Mass_R2 ? translateText(readings.Mass_R2.source, 'This is a second reading source reference.') : null,
+      readings.Mass_R2 ? translateText(readings.Mass_R2.text, 'This is a second reading text.') : null,
+      translateText(readings.copyright, 'This is copyright text.')
+    ]);
 
-    return readings; // Return original if translation fails
+    return {
+      ...readings,
+      liturgicalDay: translatedLiturgicalDay,
+      optionalSaint: translatedOptionalSaint,
+      Mass_R1: {
+        title: translatedR1Title,
+        source: translatedR1Source,
+        text: translatedR1Text
+      },
+      Mass_Ps: {
+        title: translatedPsTitle,
+        source: translatedPsSource,
+        text: translatedPsText
+      },
+      Mass_R2: readings.Mass_R2 ? {
+        title: translatedR2Title,
+        source: translatedR2Source,
+        text: translatedR2Text
+      } : undefined,
+      Mass_GA: {
+        title: translatedGATitle,
+        source: translatedGASource,
+        text: translatedGAText
+      },
+      Mass_G: {
+        title: translatedGTitle,
+        source: translatedGSource,
+        text: translatedGText
+      },
+      copyright: translatedCopyright
+    };
   } catch (error) {
     console.error('Error translating readings:', error);
     return readings; // Return original if translation fails
