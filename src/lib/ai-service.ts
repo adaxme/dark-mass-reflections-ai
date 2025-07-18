@@ -1,9 +1,3 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { ReadingSection } from './readings-api';
-
-const API_KEY = "AIzaSyAcDVH3NfuTIsmV31dNYwIv7uluD3-6Bvk";
-const genAI = new GoogleGenerativeAI(API_KEY);
-
 export interface Saint {
   name: string;
   feastDay: string;
@@ -12,10 +6,16 @@ export interface Saint {
   prayerOrQuote: string;
 }
 
+export interface ReadingSection {
+  title: string;
+  source: string;
+  text: string;
+}
+
+const API_KEY = "AIzaSyAcDVH3NfuTIsmV31dNYwIv7uluD3-6Bvk";
+
 export async function generateHomily(gospel: ReadingSection, language: string = 'en'): Promise<string> {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    
     const languageMap = {
       'en': 'English',
       'es': 'Spanish',
@@ -43,9 +43,27 @@ export async function generateHomily(gospel: ReadingSection, language: string = 
     Write everything in ${targetLanguage}.
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text();
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }]
+      })
+    });
+
+    const data = await response.json();
+    
+    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+      return data.candidates[0].content.parts[0].text;
+    }
+    
+    throw new Error('Invalid response from AI service');
   } catch (error) {
     console.error('Error generating homily:', error);
     return 'Unable to generate homily at this time. Please try again later.';
@@ -53,15 +71,11 @@ export async function generateHomily(gospel: ReadingSection, language: string = 
 }
 
 function stripHtmlTags(html: string): string {
-  const temp = document.createElement("div");
-  temp.innerHTML = html;
-  return temp.textContent || temp.innerText || "";
+  return html.replace(/<[^>]*>/g, '');
 }
 
 export async function generateSaintOfTheDay(language: string = 'en'): Promise<Saint> {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    
     const today = new Date();
     const dateString = today.toLocaleDateString('en-US', { 
       month: 'long', 
@@ -95,27 +109,41 @@ export async function generateSaintOfTheDay(language: string = 'en'): Promise<Sa
     Write all content in ${targetLanguage}.
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }]
+      })
+    });
+
+    const data = await response.json();
     
-    // Try to parse JSON from the response
-    try {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const saintData = JSON.parse(jsonMatch[0]);
-        
-        // Strip HTML tags from all fields
-        return {
-          name: stripHtmlTags(saintData.name || ""),
-          feastDay: stripHtmlTags(saintData.feastDay || ""),
-          biography: stripHtmlTags(saintData.biography || ""),
-          patron: stripHtmlTags(saintData.patron || ""),
-          prayerOrQuote: stripHtmlTags(saintData.prayerOrQuote || "")
-        };
+    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+      const text = data.candidates[0].content.parts[0].text;
+      
+      try {
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const saintData = JSON.parse(jsonMatch[0]);
+          
+          return {
+            name: stripHtmlTags(saintData.name || ""),
+            feastDay: stripHtmlTags(saintData.feastDay || ""),
+            biography: stripHtmlTags(saintData.biography || ""),
+            patron: stripHtmlTags(saintData.patron || ""),
+            prayerOrQuote: stripHtmlTags(saintData.prayerOrQuote || "")
+          };
+        }
+      } catch (parseError) {
+        console.error('Error parsing saint JSON:', parseError);
       }
-    } catch (parseError) {
-      console.error('Error parsing saint JSON:', parseError);
     }
     
     // Fallback saint if parsing fails
@@ -140,12 +168,10 @@ export async function generateSaintOfTheDay(language: string = 'en'): Promise<Sa
 
 export async function translateReadings(readings: any, language: string = 'en'): Promise<any> {
   if (language === 'en') {
-    return readings; // No translation needed for English
+    return readings;
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    
     const languageMap = {
       'es': 'Spanish',
       'fr': 'French'
@@ -156,7 +182,6 @@ export async function translateReadings(readings: any, language: string = 'en'):
       return readings;
     }
 
-    // Create separate translation requests for better reliability
     const translateText = async (text: string, context: string = ''): Promise<string> => {
       const prompt = `Translate the following Catholic liturgical text to ${targetLanguage}. Maintain the spiritual and liturgical tone. ${context}
 
@@ -164,85 +189,65 @@ Text to translate: "${text}"
 
 Respond with ONLY the translated text, no additional formatting or explanation.`;
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      return response.text().trim();
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }]
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+        return data.candidates[0].content.parts[0].text.trim();
+      }
+      
+      return text; // Return original if translation fails
     };
 
-    // Translate each field individually for better accuracy
-    const [
-      translatedLiturgicalDay,
-      translatedOptionalSaint,
-      translatedR1Title,
-      translatedR1Source,
-      translatedR1Text,
-      translatedPsTitle,
-      translatedPsSource,
-      translatedPsText,
-      translatedGATitle,
-      translatedGASource,
-      translatedGAText,
-      translatedGTitle,
-      translatedGSource,
-      translatedGText,
-      translatedR2Title,
-      translatedR2Source,
-      translatedR2Text,
-      translatedCopyright
-    ] = await Promise.all([
-      translateText(readings.liturgicalDay, 'This is a liturgical day name.'),
-      readings.optionalSaint ? translateText(readings.optionalSaint, 'This is a saint name.') : null,
-      translateText(readings.Mass_R1.title, 'This is a reading title.'),
-      translateText(readings.Mass_R1.source, 'This is a biblical source reference.'),
-      translateText(readings.Mass_R1.text, 'This is a biblical reading text.'),
-      translateText(readings.Mass_Ps.title, 'This is a psalm title.'),
-      translateText(readings.Mass_Ps.source, 'This is a psalm source reference.'),
-      translateText(readings.Mass_Ps.text, 'This is a psalm text.'),
-      translateText(readings.Mass_GA.title, 'This is a gospel acclamation title.'),
-      translateText(readings.Mass_GA.source, 'This is a gospel acclamation source.'),
-      translateText(readings.Mass_GA.text, 'This is a gospel acclamation text.'),
-      translateText(readings.Mass_G.title, 'This is a gospel title.'),
-      translateText(readings.Mass_G.source, 'This is a gospel source reference.'),
-      translateText(readings.Mass_G.text, 'This is a gospel reading text.'),
-      readings.Mass_R2 ? translateText(readings.Mass_R2.title, 'This is a second reading title.') : null,
-      readings.Mass_R2 ? translateText(readings.Mass_R2.source, 'This is a second reading source reference.') : null,
-      readings.Mass_R2 ? translateText(readings.Mass_R2.text, 'This is a second reading text.') : null,
-      translateText(readings.copyright, 'This is copyright text.')
-    ]);
-
-    return {
+    // Translate key fields
+    const translatedReadings = {
       ...readings,
-      liturgicalDay: translatedLiturgicalDay,
-      optionalSaint: translatedOptionalSaint,
+      liturgicalDay: await translateText(readings.liturgicalDay, 'This is a liturgical day name.'),
+      optionalSaint: readings.optionalSaint ? await translateText(readings.optionalSaint, 'This is a saint name.') : null,
       Mass_R1: {
-        title: translatedR1Title,
-        source: translatedR1Source,
-        text: translatedR1Text
+        title: await translateText(readings.Mass_R1.title, 'This is a reading title.'),
+        source: await translateText(readings.Mass_R1.source, 'This is a biblical source reference.'),
+        text: await translateText(readings.Mass_R1.text, 'This is a biblical reading text.')
       },
       Mass_Ps: {
-        title: translatedPsTitle,
-        source: translatedPsSource,
-        text: translatedPsText
+        title: await translateText(readings.Mass_Ps.title, 'This is a psalm title.'),
+        source: await translateText(readings.Mass_Ps.source, 'This is a psalm source reference.'),
+        text: await translateText(readings.Mass_Ps.text, 'This is a psalm text.')
       },
       Mass_R2: readings.Mass_R2 ? {
-        title: translatedR2Title,
-        source: translatedR2Source,
-        text: translatedR2Text
+        title: await translateText(readings.Mass_R2.title, 'This is a second reading title.'),
+        source: await translateText(readings.Mass_R2.source, 'This is a second reading source reference.'),
+        text: await translateText(readings.Mass_R2.text, 'This is a second reading text.')
       } : undefined,
       Mass_GA: {
-        title: translatedGATitle,
-        source: translatedGASource,
-        text: translatedGAText
+        title: await translateText(readings.Mass_GA.title, 'This is a gospel acclamation title.'),
+        source: await translateText(readings.Mass_GA.source, 'This is a gospel acclamation source.'),
+        text: await translateText(readings.Mass_GA.text, 'This is a gospel acclamation text.')
       },
       Mass_G: {
-        title: translatedGTitle,
-        source: translatedGSource,
-        text: translatedGText
+        title: await translateText(readings.Mass_G.title, 'This is a gospel title.'),
+        source: await translateText(readings.Mass_G.source, 'This is a gospel source reference.'),
+        text: await translateText(readings.Mass_G.text, 'This is a gospel reading text.')
       },
-      copyright: translatedCopyright
+      copyright: await translateText(readings.copyright, 'This is copyright text.')
     };
+
+    return translatedReadings;
   } catch (error) {
     console.error('Error translating readings:', error);
-    return readings; // Return original if translation fails
+    return readings;
   }
 }

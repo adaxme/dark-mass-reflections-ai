@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type Language = 'en' | 'es' | 'fr';
 
@@ -26,7 +27,9 @@ const translations = {
     error: 'Error loading content',
     language: 'Language',
     copyright: 'Copyright',
-    spiritualReflection: 'Spiritual Reflection'
+    spiritualReflection: 'Spiritual Reflection',
+    retry: 'Retry',
+    generateNew: 'Generate New Reflection'
   },
   es: {
     dailyReadings: 'Lecturas Diarias de la Misa',
@@ -45,7 +48,9 @@ const translations = {
     error: 'Error al cargar el contenido',
     language: 'Idioma',
     copyright: 'Derechos de autor',
-    spiritualReflection: 'Reflexión Espiritual'
+    spiritualReflection: 'Reflexión Espiritual',
+    retry: 'Reintentar',
+    generateNew: 'Generar Nueva Reflexión'
   },
   fr: {
     dailyReadings: 'Lectures Quotidiennes de la Messe',
@@ -64,14 +69,41 @@ const translations = {
     error: 'Erreur de chargement du contenu',
     language: 'Langue',
     copyright: 'Droits d\'auteur',
-    spiritualReflection: 'Réflexion Spirituelle'
+    spiritualReflection: 'Réflexion Spirituelle',
+    retry: 'Réessayer',
+    generateNew: 'Générer Nouvelle Réflexion'
   }
 };
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>('en');
+  const [language, setLanguageState] = useState<Language>('en');
+
+  useEffect(() => {
+    loadLanguage();
+  }, []);
+
+  const loadLanguage = async () => {
+    try {
+      const savedLanguage = await AsyncStorage.getItem('language');
+      if (savedLanguage && ['en', 'es', 'fr'].includes(savedLanguage)) {
+        setLanguageState(savedLanguage as Language);
+      }
+    } catch (error) {
+      console.error('Error loading language:', error);
+    }
+  };
+
+  const setLanguage = async (lang: Language) => {
+    try {
+      await AsyncStorage.setItem('language', lang);
+      setLanguageState(lang);
+    } catch (error) {
+      console.error('Error saving language:', error);
+      setLanguageState(lang);
+    }
+  };
 
   const t = (key: string): string => {
     return translations[language][key as keyof typeof translations.en] || key;

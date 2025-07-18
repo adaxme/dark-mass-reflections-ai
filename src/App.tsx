@@ -1,27 +1,86 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
+import React from 'react';
+import {NavigationContainer} from '@react-navigation/native';
+import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
+import {StatusBar, StyleSheet} from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
-const queryClient = new QueryClient();
+import {LanguageProvider} from './contexts/LanguageContext';
+import ReadingsScreen from './screens/ReadingsScreen';
+import SaintScreen from './screens/SaintScreen';
+import HomilyScreen from './screens/HomilyScreen';
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const Tab = createBottomTabNavigator();
+
+const App = () => {
+  return (
+    <SafeAreaProvider>
+      <LanguageProvider>
+        <StatusBar barStyle="light-content" backgroundColor="#141414" />
+        <NavigationContainer>
+          <Tab.Navigator
+            screenOptions={({route}) => ({
+              tabBarIcon: ({focused, color, size}) => {
+                let iconName = '';
+
+                if (route.name === 'Readings') {
+                  iconName = 'menu-book';
+                } else if (route.name === 'Saint') {
+                  iconName = 'favorite';
+                } else if (route.name === 'Homily') {
+                  iconName = 'chat';
+                }
+
+                return <Icon name={iconName} size={size} color={color} />;
+              },
+              tabBarActiveTintColor: '#FFD700',
+              tabBarInactiveTintColor: '#888',
+              tabBarStyle: styles.tabBar,
+              headerStyle: styles.header,
+              headerTintColor: '#FFD700',
+              headerTitleStyle: styles.headerTitle,
+            })}>
+            <Tab.Screen 
+              name="Readings" 
+              component={ReadingsScreen}
+              options={{title: 'Daily Readings'}}
+            />
+            <Tab.Screen 
+              name="Saint" 
+              component={SaintScreen}
+              options={{title: 'Saint of the Day'}}
+            />
+            <Tab.Screen 
+              name="Homily" 
+              component={HomilyScreen}
+              options={{title: 'Spiritual Reflection'}}
+            />
+          </Tab.Navigator>
+        </NavigationContainer>
+      </LanguageProvider>
+    </SafeAreaProvider>
+  );
+};
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: '#1F1F1F',
+    borderTopColor: '#333',
+    borderTopWidth: 1,
+    paddingBottom: 5,
+    paddingTop: 5,
+    height: 60,
+  },
+  header: {
+    backgroundColor: '#141414',
+    borderBottomColor: '#333',
+    borderBottomWidth: 1,
+  },
+  headerTitle: {
+    color: '#FFD700',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+});
 
 export default App;
